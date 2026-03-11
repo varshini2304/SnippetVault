@@ -8,11 +8,11 @@ import ProfileHero from './ProfileHero'
 export const revalidate = 120
 
 interface PageProps {
-  params: { username: string }
+  params: Promise<{ username: string }>
 }
 
 export async function generateStaticParams() {
-  const supabase = getSupabaseServerClient()
+  const supabase = await getSupabaseServerClient()
   const { data } = await supabase
     .from('snippets')
     .select('profiles!inner(username)')
@@ -26,8 +26,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const supabase = getSupabaseServerClient()
-  const profile = await fetchProfileByUsername(params.username, supabase)
+  const { username } = await params
+  const supabase = await getSupabaseServerClient()
+  const profile = await fetchProfileByUsername(username, supabase)
 
   if (!profile) {
     return {
@@ -43,10 +44,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProfilePage({ params }: PageProps) {
-  const supabase = getSupabaseServerClient()
+  const { username } = await params
+  const supabase = await getSupabaseServerClient()
   const [profile, snippets] = await Promise.all([
-    fetchProfileByUsername(params.username, supabase),
-    fetchPublicSnippetsByUsername(params.username, supabase),
+    fetchProfileByUsername(username, supabase),
+    fetchPublicSnippetsByUsername(username, supabase),
   ])
 
   if (!profile) return notFound()

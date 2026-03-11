@@ -11,6 +11,7 @@ import SearchBar from '@/components/dashboard/SearchBar'
 import TagFilterChips from '@/components/dashboard/TagFilterChips'
 import LanguageStatsBar from '@/components/dashboard/LanguageStatsBar'
 import SnippetDetailPanel from '@/components/dashboard/SnippetDetailPanel'
+import SnippetForm from '@/components/dashboard/SnippetForm'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
@@ -21,6 +22,9 @@ export default function DashboardPage() {
   const setSearchQuery = useUIStore((state) => state.setSearchQuery)
   const visibilityFilter = useUIStore((state) => state.visibilityFilter)
   const setVisibilityFilter = useUIStore((state) => state.setVisibilityFilter)
+
+  // Form state: null = closed, 'create' = create mode, 'edit' = edit mode (handled by SnippetDetailPanel)
+  const [formOpen, setFormOpen] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -70,7 +74,10 @@ export default function DashboardPage() {
               {totalCount} snippets · {publicCount} public
             </p>
           </div>
-          <Button className="h-11 bg-[var(--accent)] text-white">
+          <Button
+            className="h-11 bg-[var(--accent)] text-white"
+            onClick={() => setFormOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Snippet
           </Button>
@@ -92,11 +99,11 @@ export default function DashboardPage() {
           <div className="flex w-full flex-wrap items-center justify-between gap-4">
             <TagFilterChips tags={allTags} />
             <div className="flex items-center rounded-full border border-[var(--border)] bg-[var(--bg-tertiary)] p-1 text-xs">
-              {['all', 'public', 'private'].map((value) => (
+              {(['all', 'public', 'private'] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setVisibilityFilter(value as typeof visibilityFilter)}
+                  onClick={() => setVisibilityFilter(value)}
                   className={`rounded-full px-3 py-1 transition ${
                     visibilityFilter === value
                       ? 'bg-[var(--accent)] text-white'
@@ -117,8 +124,17 @@ export default function DashboardPage() {
         />
       </section>
 
-      <SnippetDetailPanel />
+      {/* Detail panel (handles its own edit form state) */}
+      <SnippetDetailPanel userId={userId} />
+
+      {/* Create form overlay */}
+      {formOpen && (
+        <SnippetForm
+          mode="create"
+          userId={userId}
+          onClose={() => setFormOpen(false)}
+        />
+      )}
     </div>
   )
 }
-

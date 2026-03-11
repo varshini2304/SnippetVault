@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pencil, Share2, Trash2, ArrowLeft } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
 import { useSnippet } from '@/hooks/useSnippet'
@@ -11,28 +11,43 @@ import { useToast } from '@/hooks/use-toast'
 import CodeBlock from '@/components/snippet/CodeBlock'
 import SnippetMeta from '@/components/snippet/SnippetMeta'
 import ShareMenu from '@/components/share/ShareMenu'
+import SnippetForm from '@/components/dashboard/SnippetForm'
 import { getLanguageColor } from '@/lib/utils'
 
-export default function SnippetDetailPanel() {
+interface SnippetDetailPanelProps {
+  userId: string | null
+}
+
+export default function SnippetDetailPanel({ userId }: SnippetDetailPanelProps) {
   const { toast } = useToast()
   const activeSnippetId = useUIStore((state) => state.activeSnippetId)
   const setActiveSnippet = useUIStore((state) => state.setActiveSnippet)
   const setShareMenuOpen = useUIStore((state) => state.setShareMenuOpen)
   const [showDelete, setShowDelete] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const { data: snippet, isLoading, error, refetch } = useSnippet(activeSnippetId)
   const deleteMutation = useDeleteSnippet()
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveSnippet(null)
+      if (event.key === 'Escape') {
+        if (isEditing) {
+          setIsEditing(false)
+        } else {
+          setActiveSnippet(null)
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setActiveSnippet])
+  }, [setActiveSnippet, isEditing])
 
   useEffect(() => {
-    if (!activeSnippetId) setShowDelete(false)
+    if (!activeSnippetId) {
+      setShowDelete(false)
+      setIsEditing(false)
+    }
   }, [activeSnippetId])
 
   if (!activeSnippetId) return null
@@ -48,6 +63,18 @@ export default function SnippetDetailPanel() {
     } catch {
       toast({ title: 'Delete failed', description: 'Please try again.', variant: 'destructive' })
     }
+  }
+
+  // If edit form is open, render it instead of the detail panel
+  if (isEditing && snippet) {
+    return (
+      <SnippetForm
+        mode="edit"
+        snippet={snippet}
+        userId={userId}
+        onClose={() => setIsEditing(false)}
+      />
+    )
   }
 
   return (
@@ -68,7 +95,13 @@ export default function SnippetDetailPanel() {
             </Button>
             <div className="text-sm font-medium text-[var(--text-secondary)]">Snippet Details</div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="text-[var(--text-secondary)]">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-[var(--text-secondary)]"
+                onClick={() => setIsEditing(true)}
+                title="Edit snippet"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
               <Button
@@ -203,4 +236,3 @@ export default function SnippetDetailPanel() {
     </>
   )
 }
-

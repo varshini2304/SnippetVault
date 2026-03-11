@@ -2,8 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const getSupabaseServerClient = (): SupabaseClient => {
-  const cookieStore = cookies()
+export const getSupabaseServerClient = async (): Promise<SupabaseClient> => {
+  const cookieStore = await cookies()
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !anonKey) {
@@ -21,7 +21,7 @@ export const getSupabaseServerClient = (): SupabaseClient => {
             cookieStore.set(name, value, options)
           )
         } catch {
-          // ignore
+          // ignore — called from Server Components where mutation isn't allowed
         }
       },
     },
