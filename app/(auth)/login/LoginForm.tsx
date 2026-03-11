@@ -26,6 +26,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const {
     register,
@@ -34,10 +35,7 @@ export default function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   })
 
   const emailField = register('email')
@@ -50,16 +48,32 @@ export default function LoginForm() {
     })
 
     if (error) {
-      toast({
-        title: 'Unable to sign in',
-        description: error.message,
-        variant: 'destructive',
-      })
+      toast({ title: 'Unable to sign in', description: error.message, variant: 'destructive' })
       setError('email', { message: 'Check your email and password' })
       return
     }
 
     router.push('/dashboard')
+  }
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
+        },
+      })
+      if (error) {
+        toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' })
+        setGoogleLoading(false)
+      }
+      // On success the browser navigates away — so we intentionally leave loading=true
+    } catch {
+      toast({ title: 'Something went wrong', variant: 'destructive' })
+      setGoogleLoading(false)
+    }
   }
 
   return (
@@ -86,10 +100,7 @@ export default function LoginForm() {
               id="email"
               type="email"
               value={email}
-              onChange={(event) => {
-                setEmail(event.target.value)
-                emailField.onChange(event)
-              }}
+              onChange={(event) => { setEmail(event.target.value); emailField.onChange(event) }}
               onBlur={emailField.onBlur}
               name={emailField.name}
               ref={emailField.ref}
@@ -98,9 +109,7 @@ export default function LoginForm() {
               aria-invalid={Boolean(errors.email)}
             />
           </div>
-          {errors.email ? (
-            <p className="text-xs text-[var(--danger)]">{errors.email.message}</p>
-          ) : null}
+          {errors.email ? <p className="text-xs text-[var(--danger)]">{errors.email.message}</p> : null}
         </div>
 
         <div className="space-y-2">
@@ -113,10 +122,7 @@ export default function LoginForm() {
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                passwordField.onChange(event)
-              }}
+              onChange={(event) => { setPassword(event.target.value); passwordField.onChange(event) }}
               onBlur={passwordField.onBlur}
               name={passwordField.name}
               ref={passwordField.ref}
@@ -132,9 +138,7 @@ export default function LoginForm() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {errors.password ? (
-            <p className="text-xs text-[var(--danger)]">{errors.password.message}</p>
-          ) : null}
+          {errors.password ? <p className="text-xs text-[var(--danger)]">{errors.password.message}</p> : null}
         </div>
 
         <Button
@@ -163,32 +167,29 @@ export default function LoginForm() {
       <Button
         type="button"
         variant="outline"
-        className="mt-6 h-12 w-full border-[var(--border)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+        onClick={handleGoogleSignIn}
+        disabled={googleLoading}
+        className="mt-6 h-12 w-full border-[var(--border)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-60"
       >
-        <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-          <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
-            <path
-              fill="#FFC107"
-              d="M43.611 20.083H42V20H24v8h11.303C33.706 31.91 29.19 35 24 35c-6.075 0-11-4.925-11-11s4.925-11 11-11c2.807 0 5.37 1.058 7.343 2.789l5.657-5.657C33.477 6.053 28.977 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"
-            />
-            <path
-              fill="#FF3D00"
-              d="M6.306 14.691l6.571 4.819C14.54 16.108 18.938 13 24 13c2.807 0 5.37 1.058 7.343 2.789l5.657-5.657C33.477 6.053 28.977 4 24 4c-7.681 0-14.332 4.314-17.694 10.691z"
-            />
-            <path
-              fill="#4CAF50"
-              d="M24 44c4.995 0 9.487-1.919 12.89-5.046l-5.966-5.052C29.06 35.091 26.62 36 24 36c-5.162 0-9.548-3.02-11.146-7.391l-6.53 5.025C9.664 39.732 16.345 44 24 44z"
-            />
-            <path
-              fill="#1976D2"
-              d="M43.611 20.083H42V20H24v8h11.303c-1.28 3.547-4.665 6.091-8.303 6.091-5.162 0-9.548-3.02-11.146-7.391l-6.53 5.025C9.664 39.732 16.345 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z"
-            />
-          </svg>
-        </span>
-        Continue with Google
+        {googleLoading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Redirecting to Google...
+          </span>
+        ) : (
+          <>
+            <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+              <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
+                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.706 31.91 29.19 35 24 35c-6.075 0-11-4.925-11-11s4.925-11 11-11c2.807 0 5.37 1.058 7.343 2.789l5.657-5.657C33.477 6.053 28.977 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z" />
+                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.54 16.108 18.938 13 24 13c2.807 0 5.37 1.058 7.343 2.789l5.657-5.657C33.477 6.053 28.977 4 24 4c-7.681 0-14.332 4.314-17.694 10.691z" />
+                <path fill="#4CAF50" d="M24 44c4.995 0 9.487-1.919 12.89-5.046l-5.966-5.052C29.06 35.091 26.62 36 24 36c-5.162 0-9.548-3.02-11.146-7.391l-6.53 5.025C9.664 39.732 16.345 44 24 44z" />
+                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.28 3.547-4.665 6.091-8.303 6.091-5.162 0-9.548-3.02-11.146-7.391l-6.53 5.025C9.664 39.732 16.345 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z" />
+              </svg>
+            </span>
+            Continue with Google
+          </>
+        )}
       </Button>
     </div>
   )
 }
-
-
